@@ -17,16 +17,22 @@ async def f(id):
         'Referer': 'https://steamcommunity.com/market/',
         'X-Requested-With': 'XMLHttpRequest'
     }
+
     inventory_url = f'https://steamcommunity.com/inventory/{id}/730/2?l=english&count=75&preserve_bbcode=1&raw_asset_properties=1'
     response1 = requests.get(inventory_url, headers=headers).json()['descriptions']
     names_items = [response1[i]['market_hash_name'] for i in range(len(response1))]
+    image_url = 'https://steamcommunity-a.akamaihd.net/economy/image/'
+    images = [image_url + response1[i]['icon_url'] for i in range(len(response1))]
+
     ids = {}
     with open('cs2.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
+
     for name in names_items:
-        id = data.get(name)
-        if id is not None:
-            ids[name] = data.get(name)
+        item_id = data.get(name)
+        if item_id is not None:
+            ids[name] = {'id': item_id, 'image': images[names_items.index(name)]}
+
     price_url = 'https://steamcommunity.com/market/itemordershistogram?country=RU&language=english&currency=5&item_nameid='
 
     async with aiohttp.ClientSession(headers=headers) as session:
@@ -35,13 +41,28 @@ async def f(id):
                 data = await resp.json()
                 return name, data['sell_order_graph'][0][0] if data.get('sell_order_graph') else 'N/A'
 
-        tasks = [fetch_price(name, item_id) for name, item_id in ids.items()]
+        tasks = [fetch_price(name, item_data['id']) for name, item_data in ids.items()]
         results = await asyncio.gather(*tasks)
 
-        result = dict(results)
-        result['all_price'] = sum(v for v in result.values() if isinstance(v, (int, float)))
+        # Создаем результат с ценами и изображениями
+        result = {}
+        all_price = 0
+
+        for name, price in results:
+            if isinstance(price, (int, float)):
+                all_price += price
+
+            # Сохраняем и цену, и изображение
+            result[name] = {
+                'price': price,
+                'image': ids[name]['image']  # Берем изображение из ids
+            }
+
+        result['all_price'] = all_price
         return result
 
+q = asyncio.run(f('76561198833240734'))
+print(q)
 
 @app.get('/id/{id}')
 async def get_prices(id: str):
