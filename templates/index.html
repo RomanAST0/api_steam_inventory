@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Inventory Price Checker</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <form class="search-form" action="/search" method="post">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input
+                        type="text"
+                        name="user_id"
+                        placeholder="Введите Steam ID (например: 76561198833240734)"
+                        value="{{ user_id if user_id else '' }}"
+                        required
+                    >
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+        </header>
+
+        {% if user_name and user_name != 'Неизвестный пользователь' %}
+        <div class="user-info">
+            <div class="user-avatar">
+                <img src="{{ user_icon }}" alt="{{ user_name }}" onerror="this.src='/static/default-avatar.png'">
+            </div>
+            <div class="user-details">
+                <h2>{{ user_name }}</h2>
+                <div class="user-stats">
+                    <span class="stat">
+                        <i class="fas fa-id-card"></i>
+                        <strong>Steam ID:</strong> {{ user_id }}
+                    </span>
+                    <span class="stat">
+                        <i class="fas fa-box"></i>
+                        <strong>Предметов:</strong> {{ item_count }}
+                    </span>
+                    {% if data and data.all_price %}
+                    <span class="stat total-price">
+                        <i class="fas fa-coins"></i>
+                        <strong>Общая стоимость:</strong>
+                        <span class="price-value">{{ data.all_price }}</span>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>{{ error }}</p>
+        </div>
+        {% elif data and data|length > 0 %}
+        <div class="stats-bar">
+            <div class="stats">
+                <span class="stat-item">
+                    <i class="fas fa-cube"></i>
+                    <span>{{ item_count }} предметов</span>
+                </span>
+                {% if data.all_price %}
+                <span class="stat-item total">
+                    <i class="fas fa-chart-line"></i>
+                    <span>{{ data.all_price }} всего</span>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="items-grid">
+            {% for name, item in data.items() %}
+                {% if name != 'all_price' %}
+                <div class="item-card">
+                    <div class="item-image">
+                        <img src="{{ item.image }}" alt="{{ name }}" loading="lazy">
+                    </div>
+                    <div class="item-info">
+                        <h3 class="item-name">{{ name }}</h3>
+                        <div class="item-price">
+                            <i class="fas fa-tag"></i>
+                            {% if item.price and item.price != 'Недоступно' %}
+                                <span class="price">{{ item.price }} ₽</span>
+                            {% else %}
+                                <span class="price-na">Цена недоступна</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% elif user_name and user_name != 'Неизвестный пользователь' %}
+        <div class="no-items">
+            <i class="fas fa-box-open"></i>
+            <h3>Предметы CS:GO/CS2 не найдены</h3>
+            <p>Инвентарь может быть пустым или скрытым</p>
+        </div>
+        {% else %}
+        <div class="welcome-screen">
+            <div class="welcome-content">
+                <i class="fas fa-steam"></i>
+                <h2>Проверьте стоимость инвентаря Steam</h2>
+                <p>Введите Steam ID выше чтобы посмотреть предметы CS:GO/CS2 и их текущие рыночные цены</p>
+                <div class="hint">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Steam ID — это число в URL вашего профиля Steam</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <footer class="footer">
+            <p>Работает на основе Steam Community Market API</p>
+            <p class="disclaimer">Этот сайт не аффилирован с Steam или Valve Corporation</p>
+        </footer>
+    </div>
+
+    <script>
+        // Автофокус на поле ввода
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = document.querySelector('input[name="user_id"]');
+            if (input && !input.value) {
+                input.focus();
+            }
+
+            // Плавная прокрутка при поиске нового пользователя
+            const form = document.querySelector('.search-form');
+            form.addEventListener('submit', function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        });
+    </script>
+</body>
+</html>
